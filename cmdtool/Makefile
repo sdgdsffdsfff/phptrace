@@ -1,15 +1,14 @@
-
 LIBS    = -lpthread
-CFLAGS	= -g -Wall -O2 -fno-strict-aliasing -D_GNU_SOURCE
+CFLAGS	= -g -Wall -O0 -fno-strict-aliasing
 CC      = gcc
 
-TARGET  = trace-php
+TARGET  = phptrace
 PWD := $(shell pwd)
 INCLUDE_FLAG = -I$(PWD)/../common -I$(PWD)/../common/sds
 DEPS_DIR   = $(PWD)/../common $(PWD)/../common/sds
 DEPS_FILES = $(foreach d, $(DEPS_DIR), $(wildcard $(d)/*.c))
 TRACE_OBJS = $(patsubst %.c, %.o, $(DEPS_FILES))
-TRACE_OBJS += phptrace_util.o log.o sys_trace.o phptrace.o
+TRACE_OBJS += trace_util.o trace_status.o trace_count.o log.o sys_trace.o trace.o
 
 all: $(TARGET)
 

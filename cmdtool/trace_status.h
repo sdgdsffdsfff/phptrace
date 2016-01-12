@@ -14,19 +14,21 @@
  * limitations under the License.
  */
 
-#ifndef TRACE_LOG_H
-#define TRACE_LOG_H
+#ifndef TRACE_STATUS_H
+#define TRACE_STATUS_H
 
-#define MAX_LOGMSG_LEN 1024
+#include "trace.h"
+#include "trace_util.h"
 
-#define LL_DEBUG   0
-#define LL_INFO    1
-#define LL_NOTICE  2
-#define LL_ERROR   3
 
-void log_level_set(int level);
-int log_level_get();
-void log_msg(int level, const char *msg);
-void log_printf(int level, const char *fmt, ...);
+#define MAX_STACK_DEEP      16
+#define MAX_RETRY           3
+
+#define valid_ptr(p)        ((p) && 0 == ((p) & (sizeof(long) - 1)))
+
+/* stack related */
+int status_dump_once(pt_context_t* ctx);
+int status_dump_ptrace(pt_context_t* ctx);
+void process_opt_s(pt_context_t *ctx);
 
 #endif

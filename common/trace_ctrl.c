@@ -14,19 +14,25 @@
  * limitations under the License.
  */
 
-#ifndef TRACE_LOG_H
-#define TRACE_LOG_H
+#include <string.h>
+#include "trace_ctrl.h"
 
-#define MAX_LOGMSG_LEN 1024
+int pt_ctrl_open(pt_ctrl_t *ctrl, const char *file)
+{
+    return pt_mmap_open(&ctrl->seg, file, PT_CTRL_SIZE);
+}
 
-#define LL_DEBUG   0
-#define LL_INFO    1
-#define LL_NOTICE  2
-#define LL_ERROR   3
+int pt_ctrl_create(pt_ctrl_t *ctrl, const char *file)
+{
+    return pt_mmap_create(&ctrl->seg, file, PT_CTRL_SIZE);
+}
 
-void log_level_set(int level);
-int log_level_get();
-void log_msg(int level, const char *msg);
-void log_printf(int level, const char *fmt, ...);
+int pt_ctrl_close(pt_ctrl_t *ctrl)
+{
+    return pt_mmap_close(&ctrl->seg);
+}
 
-#endif
+void pt_ctrl_clean_all(pt_ctrl_t *ctrl)
+{
+    memset(ctrl->seg.addr, 0x00, ctrl->seg.size);
+}

@@ -1,85 +1,121 @@
 phptrace
-========
+==============================
+
+> Readme in [Chinese 中文](https://github.com/Qihoo360/phptrace/blob/master/README_ZH.md)
+
+[![Build Status](https://travis-ci.org/Qihoo360/phptrace.svg)](https://travis-ci.org/Qihoo360/phptrace)
+
+phptrace is a low-overhead tracing tool for PHP.
+
+It can trace all PHP executing, function calls, request information during
+run-time. And provides features like Filter, Statistics, Current Status and so
+on.
+
+It is very useful to locate blocking, heavy-load problems and debug in all
+environments, especially in production environments.
+
+Features:
+* low-overhead, when extension loaded and trace is off
+* stable, running on [Qihoo 360](http://www.360safe.com/) and tested on main-stream frameworks
+
+Download the latest version: https://pecl.php.net/package/trace
 
 
-[![Build Status](https://travis-ci.org/Qihoo360/phptrace.svg?branch=nightly)](https://travis-ci.org/Qihoo360/phptrace)
+Building
+------------------------------
 
-## Introduction [中文](https://github.com/Qihoo360/phptrace/blob/master/README_ZH.md)
+1. Extracting tarball
+    ```
+    tar -zxf phptrace-{version}.tar.gz
+    cd phptrace-{version}
+    ```
 
-Phptrace is a tracing and troubleshooting tool for PHP scripts. The information of php execute context and php function calls are fetched from PHP Runtime. It is very useful to locate blocking problems, heavy-load problems and tricky bugs both in the online environment and the development environment.
+2. PHP extension - Compile
+    ```
+    cd extension
+    {php_bin_dir}/phpize
+    ./configure --with-php-config={php_bin_dir}/php-config
+    make
+    make install
+    ```
 
-[Introduction and Usage](https://github.com/Qihoo360/phptrace/wiki)
+3. PHP extension - Add extension load directive
 
-## Building
+    Edit `php.ini`, add the following line. A reload is needed if PHP running
+    by php-fpm.
 
-* Extracting the tarball
-```shell
-tar -zxf phptrace-<version>.tar.gz
-cd phptrace-<version>
-```
+    ```
+    extension=trace.so
+    ```
 
-* Compile the PHP extension
-```shell
-cd phpext
-phpize
-./configure --with-php-config=/path/to/php-config
-make
-```
+4. Command tool - Compile
+    ```
+    cd cmdtool
+    make
+    ```
 
-* Compile the command tool
-```shell
-cd cmdtool
-make
-```
+5. Verify
+    ```
+    php -r 'for ($i = 0; $i < 100; $i++) usleep(10000);' &
+    ./phptrace -p $!
+    ```
 
-## Installing
-* Install the php extension (phptrace.so) to the PHP extension directory.
-```shell
-make install
-```
+    You should see something below if everything fine
 
-* Edit php.ini and restart the php process if needed.
-```
-extension=phptrace.so
-phptrace.enabled=1
-```
+    ```
+    1431681727.341829      usleep  =>  NULL   wt: 0.011979 ct: 0.011980
+    1431681727.341847      usleep(10000) at [Command line code:1]
+    1431681727.353831      usleep  =>  NULL   wt: 0.011984 ct: 0.011983
+    1431681727.353849      usleep(10000) at [Command line code:1]
+    1431681727.365829      usleep  =>  NULL   wt: 0.011980 ct: 0.011981
+    1431681727.365848      usleep(10000) at [Command line code:1]
+    ```
 
-* Use the phptrace tool directly under the cmdtool directory.
-```shell
-cd cmdtool
-./phptrace  [options]
-```
 
-## Examples
+Usage
+------------------------------
 
-* Trace php function calls.
+* Trace executing
 
-```shell
-$ ./phptrace -p 2459                # phptrace -p <PID>
-1417506346.727223 run(<Null>)
-1417506346.727232     say($msg = "hello world")
-1417506346.727241         sleep($seconds = "1")
-1417506347.727341         sleep =>      0       1.000100 
-1417506347.727354     say =>    hello world     1.000122 
-1417506347.727358 run =>        nil     1.000135
-```
+    ```
+    $ ./phptrace -p 3600
+    1431682433.534909      run() at [sample.php:15]
+    1431682433.534944        say("hello world") at [sample.php:7]
+    1431682433.534956          sleep(1) at [sample.php:11]
+    1431682434.538847          sleep  =>  0   wt: 1.003891 ct: 0.000000
+    1431682434.538899          printf("hello world") at [sample.php:12]
+    1431682434.538953          printf  =>  11   wt: 0.000054 ct: 0.000000
+    1431682434.538959        say  =>  NULL   wt: 1.004015 ct: 0.000000
+    1431682434.538966      run  =>  NULL   wt: 1.004057 ct: 0.000000
+    ```
 
-* Print the stack of function call.
-```shell
-$ ./phptrace -p 3130 -s             # phptrace -p <PID> -s
-phptrace 0.1 demo, published by infra webcore team
-process id = 3130
-script_filename = /home/xxx/opt/nginx/webapp/block.php
-[0x7f27b9a99dc8]  sleep /home/xxx/opt/nginx/webapp/block.php:6
-[0x7f27b9a99d08]  say /home/xxx/opt/nginx/webapp/block.php:3
-[0x7f27b9a99c50]  run /home/xxx/opt/nginx/webapp/block.php:10 
-```
+* Print current status
 
-## Comparison
+    ```
+    $ ./phptrace -s -p 3600
+    Memory
+    usage: 235320
+    peak_usage: 244072
+    real_usage: 262144
+    real_peak_usage: 262144
 
-### PhpTrace
+    Request
+    request_script: sample.php
+    request_time: 1431682554.245320
+
+    Stack
+    #1    printf("hello world") at [sample.php:8]
+    #2    say("hello world") at [sample.php:3]
+    #3    run() at [sample.php:12]
+    ```
+
+
+Comparison
+------------------------------
+
+### phptrace
 * It can print call stack of executing php process, which is similar to pstack.
-* It can trace php function callls, which is similar to strace.
+* It can trace php function calls, which is similar to strace.
 * It cannot get performance summary of php scripts, which will be supported in the future.
 * It can not debug php scripts.
 
@@ -99,7 +135,14 @@ script_filename = /home/xxx/opt/nginx/webapp/block.php
 d in production envirenment.
 * It can not be enabled to trace without modifying the ini or the php script.
 
-## Contact
+
+Contact
+------------------------------
 
 * Email: g-infra-webcore@list.qihoo.net
-* QQ Group: 428631461
+
+
+License
+------------------------------
+
+This project is released under the [Apache 2.0 License](https://raw.githubusercontent.com/Qihoo360/phptrace/master/LICENSE).

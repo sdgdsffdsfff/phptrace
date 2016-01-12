@@ -1,23 +1,24 @@
-language: c
+language: php
 
-cache:
-    - apt
+php:
+  - 5.2
+  - 5.3
+  - 5.4
+  - 5.5
+  - 5.6
 
 before_install:
-    - sudo apt-get update -qq
-    - sudo apt-get install php5 php5-dev
-    - sudo apt-get install libgtest-dev 
-    - sudo apt-get install cmake
-    - cd /usr/src/gtest
-    - sudo cmake CMakeLists.txt
-    - sudo make
-    - sudo cp *.a /usr/lib
-    - cd -
+    # build PHP without ZTS by ourselves...
+    - PT_PHP_VERSION=`php --version | awk 'NR == 1 {print $2}'`
+    - ./.travis/php_get.sh ${PT_PHP_VERSION}
+    - ./.travis/php_build.sh `pwd` php-${PT_PHP_VERSION}.tar.bz2
+    - PT_PHP_PATH=`pwd`/php-${PT_PHP_VERSION}
+    - PT_PHP_BIN=${PT_PHP_PATH}/bin/php
 
 before_script:
-    - make all PHPDIR=/usr
-    - cd tests && make && cd -
-
+    - (cd cmdtool && make)
+    - ./.travis/ext_build.sh extension ${PT_PHP_PATH}
 
 script:
-    - tests/phptrace_unittest
+    - (cd ${PT_PHP_PATH} && TEST_PHP_EXECUTABLE=${PT_PHP_BIN} ${PT_PHP_BIN} -n run-tests.php -q -n -d extension=trace.so -g "FAIL" --show-diff --set-timeout 120 tests Zend/tests; true)
+    - (cd extension && REPORT_EXIT_STATUS=1 TEST_PHP_EXECUTABLE=${PT_PHP_BIN} ${PT_PHP_BIN} -n run-tests.php -q -n -d extension=trace.so --show-diff)
